@@ -46,7 +46,6 @@ class Med_info:
             variants.add(lic.replace(" ", ""))
             variants.add(re.sub(r"([A-Za-z]+)(\d+)", r"\1 \2", lic.replace(" ", "")))
             variants.add(lic.replace("-", ""))
-            variants.add(lic.replace("-", " "))
 
             return list(variants)
         except Exception as err:
@@ -79,16 +78,36 @@ class Med_info:
                 else:
                     taxonomies = row_taxonomies
 
-                primary_taxonomy = None
+                fl_primary_taxonomy = None
+                fl_any_taxonomy = None
+
                 for taxo in taxonomies:
-                    if isinstance(taxo, dict) and taxo.get("primary"):
-                        primary_taxonomy = taxo
-                        break
+                    if not isinstance(taxo, dict):
+                        continue
 
-                license_number = (primary_taxonomy.get("license") or "").strip() if primary_taxonomy else ""
-                taxonomy_state = (primary_taxonomy.get("state") or "").strip().upper() if primary_taxonomy else state_code
+                    state = (taxo.get("state") or "").strip().upper()
+                    is_primary = taxo.get("primary", False)
 
-                license_variants = self.normalize_license(license_number)
+                    if state == "FL" and is_primary:
+                        fl_primary_taxonomy = taxo
+                        break  
+                    elif state == "FL" and not fl_any_taxonomy:
+                        fl_any_taxonomy = taxo 
+
+                selected_taxonomy = fl_primary_taxonomy or fl_any_taxonomy
+
+                if selected_taxonomy:
+                    license_number = (selected_taxonomy.get("license") or "").strip()
+                    taxonomy_state = "FL"
+
+                    if re.fullmatch(r"\d+", license_number):
+                        license_variants = [f"MS{license_number}", f"OS{license_number}"]
+                    else:
+                        license_variants = self.normalize_license(license_number)
+                else:
+                    license_number = ""
+                    taxonomy_state = state_code
+                    license_variants = []
 
                 all_info = {
                     "npi_number": npi_number,
