@@ -5,6 +5,7 @@ import pandas as pd
 from selenium.webdriver.common.by import By
 from src.domain.file_io.io_file import ERRORIO
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.ui import WebDriverWait
 
 class Florida:
     def __init__(self):
@@ -49,18 +50,26 @@ class Florida:
                     license_number_found = driver.find_element(
                         By.CSS_SELECTOR, "div#content div.p-h-md.p-v.pos-rlt h3:nth-of-type(2)").text.strip()
 
-                    fourth_tab = driver.find_element(By.CSS_SELECTOR, "ul.nav.nav-tabs.col-md-12 li:nth-child(4) a")
-                    fourth_tab.click()
+                    # fourth_tab = driver.find_element(By.CSS_SELECTOR, "ul.nav.nav-tabs.col-md-12 li:nth-child(4) a")
+                    practitioner_profile_tab = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, "//ul[contains(@class,'nav-tabs')]//a[text()='Practitioner Profile']")))
+                    practitioner_profile_tab.click()
 
                     wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "div.tab-content div.tab-pane.active")))
                     to_upper_divs = driver.find_elements(By.CSS_SELECTOR, "div.tab-pane.active div.toUpper")
 
                     if len(to_upper_divs) >= 5:
                         name = to_upper_divs[0].text.strip()
+                        
+                        input_full_name = f"{first_name} {last_name}".strip().lower()
+                        florida_name = name.lower()    
+                        if input_full_name not in florida_name and florida_name not in input_full_name:
+                            continue 
                         primary_address = " ".join([d.text.strip() for d in to_upper_divs[1:5]])
+                        
                     else:
                         name = ""
                         primary_address = ""
+
 
                     xyz_div = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "div#General > div")))
 
