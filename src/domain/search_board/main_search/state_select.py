@@ -11,6 +11,7 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.support.ui import WebDriverWait
 from webdriver_manager.chrome import ChromeDriverManager
 from pathlib import Path
+from src.domain.search_board.google_api import GOOGLESEARCAPI 
 
 class Med_info:
     def __init__(self):
@@ -31,8 +32,9 @@ class Med_info:
             output_file = output_dir / f"{select_state}_chunk_{chunk_id}.xlsx"
             df.to_excel(output_file, index=False)
             print(f"[{os.getpid()}] Wrote chunk to {output_file}")
-        except Exception as e:
-            ERRORIO().write_file(file_data=ERRORIO().get_errdetails(e), path=path_obj.error_details_file)
+        except Exception as err:
+            err_obj = ERRORIO()
+            err_obj.write_file(err)
 
     def normalize_license(self,license_number: str) -> list[str]:
         try:
@@ -50,7 +52,7 @@ class Med_info:
             return list(variants)
         except Exception as err:
             err_obj = ERRORIO()
-            err_obj.write_file(file_data=err_obj.get_errdetails(err), path=path_obj.error_details_file, mode="a")
+            err_obj.write_file(err)
 
 
     def enter_info(self, npi_df: pd.DataFrame, state_code: str, chunk_id: int):
@@ -58,9 +60,10 @@ class Med_info:
             options = Options()
             prefs = {"profile.managed_default_content_settings.images": 2}
             options.add_experimental_option("prefs", prefs)
-            options.add_argument("--headless=new")
+            # options.add_argument("--headless=new")
+            options.add_argument("--start-maximized")
             driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
-            wait = WebDriverWait(driver, 15)
+            wait = WebDriverWait(driver, 5)
 
             results = []
 
@@ -101,7 +104,7 @@ class Med_info:
                     taxonomy_state = "FL"
 
                     if re.fullmatch(r"\d+", license_number):
-                        license_variants = [f"MS{license_number}", f"OS{license_number}"]
+                        license_variants = [f"ME{license_number}", f"OS{license_number}"]
                     else:
                         license_variants = self.normalize_license(license_number)
                 else:
@@ -125,11 +128,23 @@ class Med_info:
                         state_df_result = fl_obj.enter_details(driver, wait, **all_info)
                         if state_df_result is not None and not state_df_result.empty:
                             results.append(state_df_result)
+                        else:       
+                            print("Go through google search api")                     
+                            search_api_obj = GOOGLESEARCAPI()
+                            fallback_data = search_api_obj.get_details_searchapi(all_info["first_name"], all_info["last_name"],all_info["npi_number"])
+
+                            if fallback_data:
+                                fallback_df = pd.DataFrame(fallback_data)
+                                results.append(fallback_df)
+                                
+                            else:
+                                print("Fallback also failed. No data found.")
                     else:
                         print(f"Unsupported state: {taxonomy_state}")
                         continue
                 except Exception as err:
-                    ERRORIO().write_file(file_data=ERRORIO().get_errdetails(err), path=path_obj.error_details_file)
+                    err_obj = ERRORIO()
+                    err_obj.write_file(err)
 
                 time.sleep(random.uniform(1, 2))
 
@@ -140,4 +155,5 @@ class Med_info:
             driver.quit()
 
         except Exception as err:
-            ERRORIO().write_file(file_data=ERRORIO().get_errdetails(err), path=path_obj.error_details_file)
+            err_obj = ERRORIO()
+            err_obj.write_file(err)
