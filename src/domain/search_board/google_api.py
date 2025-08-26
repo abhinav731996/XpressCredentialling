@@ -11,7 +11,7 @@ from webdriver_manager.chrome import ChromeDriverManager
 from src.domain.search_board.florida_board import fl_obj
 API_KEY = ""
 
-
+# update with your own search eng id
 CX = "93b1ebc87c2ee42a3"
 
 
