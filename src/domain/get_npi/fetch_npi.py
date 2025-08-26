@@ -1,3 +1,5 @@
+import sys,os
+sys.path.append(os.getcwd())
 import pandas as pd
 import requests
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -7,7 +9,7 @@ from src.domain.path.project_paths import path_obj
 
 class NPI_API:
     def __init__(self):
-        self.df = pd.read_excel(path_obj.xpress_input) 
+        self.df = pd.read_excel(path_obj.arizona_input_famprac) 
         self.npi_list = self.df["National Provider Identifier"].dropna().astype(str).tolist()
 
     def get_npi(self, npi):
@@ -50,7 +52,7 @@ class NPI_API:
 
         if all_results:
             df = pd.json_normalize(all_results)
-            df.to_excel(path_obj.license_for_cms, index=False)
+            df.to_excel(path_obj.arizona_npi_license, index=False)
             print("Records saved")
         else:
             print("No results found")
