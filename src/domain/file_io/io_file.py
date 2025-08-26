@@ -1,7 +1,11 @@
+import sys,os
+sys.path.append(os.getcwd())
 from src.domain.path.project_paths import path_obj
 import pandas as pd
 from abc import ABC, abstractmethod
-import datetime,traceback,json,os
+import os
+import logging
+from pythonjsonlogger import jsonlogger
 
 class FILEIO(ABC):
     
@@ -9,35 +13,40 @@ class FILEIO(ABC):
     def write_file(self,*args,**kwargs):
         pass
 
-
 class ERRORIO(FILEIO):
     def __init__(self):
         super().__init__()
+        self.logger = logging.getLogger("error_logger")
+        self.logger.setLevel(logging.ERROR)
 
-    def write_file(self,file_data,path,mode="a"):
-        with open(path,mode) as file:
-            data = f"\n{file_data}" # error data - json
-            file.write(data)  
+        if not self.logger.hasHandlers():
+            handler = logging.FileHandler(path_obj.error_details_file, mode="a")
+            formatter = jsonlogger.JsonFormatter(
+                fmt="%(module)s %(funcName)s %(message)s %(asctime)s %(lineno)d %(levelname)s"
+            )
+            handler.setFormatter(formatter)
+            self.logger.addHandler(handler)
 
-    def get_errdetails(self,error):
-        date = datetime.datetime.now()
-        str_date = date.strftime("%Y-%m-%d %H:%M:%S")
+    def write_file(self, error: Exception):
+        self.logger.error(error, stacklevel=2)
 
-        tb = traceback.extract_tb(error.__traceback__)[-1]
-        module_name = os.path.basename(tb.filename)
-        function_name = tb.name
-        line_no = tb.lineno
 
-        err_details = json.dumps({"module":module_name,"function":function_name,"error":str(error),"date":str_date,"line":line_no})
-        return err_details  
-        
-
-class EXCELIO(FILEIO):
+class REQUESTIO(FILEIO):
     def __init__(self):
         super().__init__()
-    
-    def write_file(self, sheet_name, df):
-        with pd.ExcelWriter(path_obj.test_result, mode='w', engine='openpyxl') as writer:
-            df.to_excel(writer, sheet_name=sheet_name, index=False)
-        
-file_io_obj = EXCELIO()
+        self.logger = logging.getLogger("request_logger")
+        self.logger.setLevel(logging.ERROR)
+
+        if not self.logger.hasHandlers():
+            handler = logging.FileHandler(path_obj.request_errors_log, mode="a")
+            formatter = jsonlogger.JsonFormatter(
+                fmt="%(asctime)s %(levelname)s %(message)s"
+            )
+            handler.setFormatter(formatter)
+            self.logger.addHandler(handler)
+
+    def write_file(self, message: str):
+        self.logger.error(message, stacklevel=2)
+
+      
+error_io_obj = ERRORIO()
