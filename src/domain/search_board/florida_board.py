@@ -1,4 +1,4 @@
-import sys, os
+import sys, os,re
 sys.path.append(os.getcwd())
 from src.domain.path.project_paths import path_obj
 import pandas as pd
@@ -11,14 +11,31 @@ class Florida:
     def __init__(self):
         pass
 
+    def normalize_name(self,name):
+        name = name.lower()
+        name = re.sub(r'[^\w\s]', '', name)
+        return name.split()
+
+    def names_have_overlap(self,input_first, input_last, florida_name_raw):
+        input_parts = self.normalize_name(f"{input_first} {input_last}")
+        florida_parts = self.normalize_name(florida_name_raw)
+
+        common = set(input_parts) & set(florida_parts)
+        return len(common) > 0
+
     def enter_details(self, driver, wait, **all_info):
         try:
             license_variants = all_info.get("license_variants", [])
             first_name = all_info.get("first_name", "")
             last_name = all_info.get("last_name", "")
             npi_number = all_info.get("npi_number", "")
+            
+            if license_variants:
+                licenses_to_check = license_variants
+            else:
+                licenses_to_check = [all_info.get("license_number")]
 
-            for lic in license_variants if license_variants else [all_info.get("license_number")]:
+            for lic in licenses_to_check:
                 try:
                     driver.get(path_obj.florida_med_board_url)
 
@@ -26,7 +43,7 @@ class Florida:
                         license_input = wait.until(EC.presence_of_element_located((By.ID, "SearchDto_LicenseNumber")))
                         license_input.clear()
                         license_input.send_keys(lic)
-                    else: 
+                    else:
                         first_name_input = wait.until(EC.presence_of_element_located((By.ID, "SearchDto_FirstName")))
                         last_name_input = driver.find_element(By.ID, "SearchDto_LastName")
                         zip_input = driver.find_element(By.ID, "SearchDto_ZipCode")
@@ -50,26 +67,23 @@ class Florida:
                     license_number_found = driver.find_element(
                         By.CSS_SELECTOR, "div#content div.p-h-md.p-v.pos-rlt h3:nth-of-type(2)").text.strip()
 
-                    # fourth_tab = driver.find_element(By.CSS_SELECTOR, "ul.nav.nav-tabs.col-md-12 li:nth-child(4) a")
-                    practitioner_profile_tab = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, "//ul[contains(@class,'nav-tabs')]//a[text()='Practitioner Profile']")))
+                    practitioner_profile_tab = WebDriverWait(driver, 10).until(
+                        EC.element_to_be_clickable((By.XPATH, "//ul[contains(@class,'nav-tabs')]//a[text()='Practitioner Profile']"))
+                    )
                     practitioner_profile_tab.click()
 
                     wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "div.tab-content div.tab-pane.active")))
-                    to_upper_divs = driver.find_elements(By.CSS_SELECTOR, "div.tab-pane.active div.toUpper")
 
+
+                    to_upper_divs = driver.find_elements(By.CSS_SELECTOR, "div.tab-pane.active div.toUpper")
                     if len(to_upper_divs) >= 5:
                         name = to_upper_divs[0].text.strip()
-                        
-                        input_full_name = f"{first_name} {last_name}".strip().lower()
-                        florida_name = name.lower()    
-                        if input_full_name not in florida_name and florida_name not in input_full_name:
-                            continue 
+                        if not self.names_have_overlap(first_name, last_name, name):
+                            continue
                         primary_address = " ".join([d.text.strip() for d in to_upper_divs[1:5]])
-                        
                     else:
                         name = ""
                         primary_address = ""
-
 
                     xyz_div = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "div#General > div")))
 
@@ -88,8 +102,8 @@ class Florida:
                         "name": [name],
                         "email": [email]
                     }
-
-                    return pd.DataFrame(data) 
+                    result_df = pd.DataFrame(data)
+                    return result_df
 
                 except Exception:
                     continue
@@ -98,8 +112,7 @@ class Florida:
 
         except Exception as err:
             err_obj = ERRORIO()
-            err_obj.write_file(file_data=err_obj.get_errdetails(err), path=path_obj.error_details_file, mode="a")
+            err_obj.write_file(err)
             return None
-
 
 fl_obj = Florida()
