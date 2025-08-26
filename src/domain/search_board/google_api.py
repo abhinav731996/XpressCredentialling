@@ -9,7 +9,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
 from src.domain.search_board.florida_board import fl_obj
-API_KEY = "AIzaSyDsMyouuvDHblvZiZ6WFHhLErFcDMRCNhI"
+API_KEY = ""
 
 
 CX = "93b1ebc87c2ee42a3"
