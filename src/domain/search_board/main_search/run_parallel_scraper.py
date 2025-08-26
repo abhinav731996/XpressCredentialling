@@ -10,9 +10,13 @@ import glob
 
 class SCRAPPER:
     def __init__(self):
-        self.state_code = "FL"
-        self.df = pd.read_excel(path_obj.npi_excel_file, sheet_name=self.state_code)
-        self.chunks = np.array_split(self.df, 2)
+        try:
+            self.state_code = "FL"
+            self.df = pd.read_excel(path_obj.improperstate_npi_ex_sheet, sheet_name=self.state_code)
+            self.chunks = np.array_split(self.df, 2)
+        except Exception as err:
+            err_obj = ERRORIO()
+            err_obj.write_file(err)
 
     @staticmethod
     def process_chunk(chunk_df, state_code, chunk_id):
@@ -23,7 +27,7 @@ class SCRAPPER:
             print(f"[Worker {chunk_id}] Done")
         except Exception as err:
             err_obj = ERRORIO()
-            err_obj.write_file(file_data=err_obj.get_errdetails(err), path=path_obj.error_details_file, mode="a")
+            err_obj.write_file(err)
 
     def merge_outputs(self):
         try:
@@ -37,17 +41,17 @@ class SCRAPPER:
                     df = pd.read_excel(file)
                     all_dfs.append(df)
                 except Exception as e:
-                    ERRORIO().write_file(file_data=ERRORIO().get_errdetails(e), path=path_obj.error_details_file)
+                    ERRORIO().write_file(err)
 
             if all_dfs:
                 final_df = pd.concat(all_dfs, ignore_index=True)
-                final_df.to_excel(path_obj.email_sheet, sheet_name=self.state_code, index=False)
-                print(f"[Merge] Saved final result to {path_obj.email_sheet}")
+                final_df.to_excel(path_obj.improperstate_email_ex_sheet, sheet_name=self.state_code, index=False)
+                print(f"[Merge] Saved final result to {path_obj.normalstate_email_ex_sheet}")
             else:
                 print("[Merge] No data collected to merge.")
         except Exception as err:
             err_obj = ERRORIO()
-            err_obj.write_file(file_data=err_obj.get_errdetails(err), path=path_obj.error_details_file, mode="a")
+            err_obj.write_file(err)
 
     def create_instances(self):
         try:
@@ -60,9 +64,7 @@ class SCRAPPER:
                     future.result()
         except Exception as err:
             err_obj = ERRORIO()
-            err_obj.write_file(file_data=err_obj.get_errdetails(err), path=path_obj.error_details_file, mode="a")
-
-
+            err_obj.write_file(err)
 
 if __name__ == '__main__':
     from src.domain.search_board.main_search.run_parallel_scraper import SCRAPPER 
