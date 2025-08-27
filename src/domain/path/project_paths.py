@@ -16,8 +16,8 @@ class PATHS:
     email_sheet = r"D:\Repositories\XpressCredentialling\src\database\email_sheet.xlsx"
 
     # Arizona
-    arizona_input_famprac = r"D:\Repositories\XpressCredentialling\src\database\arizona_famprac.xlsx"
-    arizona_npi_license = r"D:\Repositories\XpressCredentialling\src\database\arizona_npi_license.xlsx"
+    arizona_input_famprac = r"D:\Repositories\XpressCredentialling\src\database\test\arizona_get_license.xlsx"
+    arizona_npi_license_two = r"D:\Repositories\XpressCredentialling\src\database\test\arizona_npi_license_two.xlsx"
     arizona_lookup_url = r"https://azbomv7prod.glsuite.us/GLSuiteWeb/Clients/AZBOM/public/WebVerificationSearch.aspx?q=azmd&t=20250816101430"
     arizona_test_npi = r"D:\Repositories\XpressCredentialling\src\database\test\arizona_test\rename_test_npi.xlsx"
     #test 
@@ -25,7 +25,9 @@ class PATHS:
     improperstate_npi_ex_sheet = r"D:\Repositories\XpressCredentialling\src\database\test\test_npi_improperstate.xlsx"
     
     normalstate_email_ex_sheet = r"D:\Repositories\XpressCredentialling\src\database\test\test_email_sheet.xlsx"
-    normalstate_npi_ex_sheet = r"D:\Repositories\XpressCredentialling\src\database\test\test_npi.xlsx"
+    normalstate_npi_ex_sheet = r"D:\Repositories\XpressCredentialling\src\database\test\test_combined.xlsx"
 
+    website_sheet = r"D:\Repositories\XpressCredentialling\src\database\test\test_combined.xlsx"
+    website_npi_info = r"D:\Repositories\XpressCredentialling\src\database\raish_dinesh_npi_info.xlsx"
 path_obj = PATHS()
 
