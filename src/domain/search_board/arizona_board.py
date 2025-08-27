@@ -1,4 +1,4 @@
-import sys, os,re,json
+import sys, os,re,json,time
 sys.path.append(os.getcwd())
 from src.domain.path.project_paths import path_obj
 import pandas as pd
@@ -6,23 +6,12 @@ from selenium.webdriver.common.by import By
 from src.domain.file_io.io_file import ERRORIO
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
+from src.domain.helper.name_match import name_match_obj
 
 
 class ARIZONA:
     def __init__(self):
         pass
-
-    def normalize_name(self,name):
-        name = name.lower()
-        name = re.sub(r'[^\w\s]', '', name)
-        return name.split()
-
-    def names_have_overlap(self,input_first, input_last, florida_name_raw):
-        input_parts = self.normalize_name(f"{input_first} {input_last}")
-        florida_parts = self.normalize_name(florida_name_raw)
-
-        common = set(input_parts) & set(florida_parts)
-        return len(common) > 0
 
     def enter_details(self, driver, wait, **all_info):
         try:
@@ -58,13 +47,26 @@ class ARIZONA:
                     license_button = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "#ContentPlaceHolder1_btnLicense")))
                     license_button.click()
 
-                    result_link = wait.until(EC.element_to_be_clickable((
+                    name_cell = wait.until(EC.presence_of_element_located((
                         By.CSS_SELECTOR,
-                        "#ContentPlaceHolder1_dtgList > tbody > tr.headerBlue.Verdana10Center > td:nth-child(1) > a > u"
+                        "#ContentPlaceHolder1_dtgList > tbody > tr.headerBlue.Verdana10Center > td:nth-child(2)"
                     )))
-                    result_link.click()
+                    name_text = name_cell.text.strip()
 
-                    WebDriverWait(driver, 7).until(lambda d: len(d.window_handles) > 1)
+                    
+                    name_only = name_text.split("Specialty")[0].strip() if "Specialty" in name_text else name_text
+
+                    if name_match_obj.is_name_match(first_name, last_name,name_only):
+                        result_link = wait.until(EC.element_to_be_clickable((
+                            By.CSS_SELECTOR,
+                            "#ContentPlaceHolder1_dtgList > tbody > tr.headerBlue.Verdana10Center > td:nth-child(1) > a > u"
+                        )))
+                        result_link.click()
+                    else:
+                        print("Details dont match...Checking next License Number")
+                        continue
+
+                    WebDriverWait(driver, 10).until(lambda d: len(d.window_handles) > 1)
                     
                     driver.switch_to.window(driver.window_handles[-1])
 
@@ -73,24 +75,33 @@ class ARIZONA:
                         (By.CSS_SELECTOR, "#ContentPlaceHolder1_dtgGeneral_lblLeftColumnEntName_0 > b")
                     ))
                     doctor_name = name_element.text.strip()
-                    print("Doctor's Name:", doctor_name)
-
-                    
+                                        
                     clinic_info_element = wait.until(EC.presence_of_element_located(
                         (By.CSS_SELECTOR, "#ContentPlaceHolder1_dtgGeneral_lblLeftColumnPracAddr_0")
                     ))
                     clinic_raw_html = clinic_info_element.get_attribute('innerHTML')
-
                     
                     lines = [line.strip() for line in re.split(r'<br\s*/?>', clinic_raw_html) if line.strip()]
 
-                    clinic_name = lines[0] if len(lines) > 0 else ""
-                    clinic_address = "\n".join(lines[1:3]) if len(lines) >= 3 else ""
-                    clinic_phone = next((line for line in lines if "Phone:" in line), "")
+                    if lines:
+                        if re.match(r'^\d+', lines[0]):
+                            clinic_name = ""
+                            clinic_address = "\n".join(lines[0:2]) if len(lines) >= 2 else lines[0]
+                        else:
+                            clinic_name = lines[0]
+                            clinic_address = "\n".join(lines[1:3]) if len(lines) >= 3 else ""
+                    else:
+                        clinic_name = ""
+                        clinic_address = ""
 
-                    print("Clinic Name:", clinic_name)
-                    print("Clinic Address:", clinic_address)
-                    print("Clinic Phone:", clinic_phone)
+                    clinic_phone = ""
+
+                    for line in lines:
+                        if "phone:" in line.lower():
+                            raw_phone_line = line.strip()
+                            phone_label_removed = re.sub(r'(?i)phone:\s*', '', raw_phone_line)
+                            clinic_phone = phone_label_removed.strip()
+                            break
 
                     license_info_element = wait.until(EC.presence_of_element_located(
                         (By.CSS_SELECTOR, "#ContentPlaceHolder1_dtgGeneral > tbody > tr > td:nth-child(2)")
@@ -100,7 +111,6 @@ class ARIZONA:
                     match = re.search(r"License Number:\s*(\d+)", license_info_text)
                     license_number = match.group(1) if match else "Not Found"
 
-                    print("License Number:", license_number)
 
                     data = [{
                         "npi": npi_number,
@@ -111,13 +121,27 @@ class ARIZONA:
                         "clinic_phone": clinic_phone
                     }]
 
-                    print(json.dumps(data,indent=3))
                     result_df = pd.DataFrame(data)
                     print(result_df)
                     return result_df
 
-                except Exception:
+                except Exception as e:
+                    err_obj = ERRORIO()
+                    err_obj.write_file(err)
                     continue
+
+                finally:
+                    handles = driver.window_handles
+                    if len(handles) > 1:
+                        try:
+                            time.sleep(1) 
+                            driver.close()
+                        except:
+                            pass
+                        try:
+                            driver.switch_to.window(handles[0])
+                        except:
+                            pass
 
             return None 
 
