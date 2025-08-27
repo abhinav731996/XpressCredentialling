@@ -1,63 +1,191 @@
-import requests
-from bs4 import BeautifulSoup
-import pandas as pd
 import time
+import pandas as pd
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 
-API_URL = 'https://npiregistry.cms.hhs.gov/api/'
+# --- Florida scraping class ---
+class FloridaEmailScraper:
+    def __init__(self, input_file, output_file):
+        self.input_file = input_file
+        self.output_file = output_file
+        self.url = "https://mqa-internet.doh.state.fl.us/MQASearchServices/HealthCareProviders"
 
-def fetch_providers_by_state(state, limit=100, batch=50):
-    providers = []
-    skip = 0
-    while len(providers) < limit:
-        params = {'version': '2.1', 'state': state, 'limit': batch, 'skip': skip}
-        resp = requests.get(API_URL, params=params)
-        resp.raise_for_status()
-        res = resp.json().get('results', [])
-        if not res:
-            break
-        providers.extend(res)
-        skip += batch
-        time.sleep(0.5)  # gentle rate limit
-    return providers
+        options = webdriver.ChromeOptions()
+        options.add_argument("--headless")  # background mode
+        self.driver = webdriver.Chrome(options=options)
+        self.wait = WebDriverWait(self.driver, 15)
 
-def parse_provider(p):
-    addr = p.get('addresses', [{}])[0]
-    return {
-        'npi': p.get('number'),
-        'name': p.get('basic', {}).get('name'),
-        'address': addr.get('address_1', ''),
-        'city': addr.get('city', ''),
-        'state': addr.get('state', ''),
-        'postal_code': addr.get('postal_code', ''),
-        'occupation': p.get('taxonomies', [{}])[0].get('desc', '')
-    }
+    def scrape_emails(self):
+        df = pd.read_excel(self.input_file)
 
-def lookup_license(license_no):
-    url = f'https://example.com/?license={license_no}'
-    resp = requests.get(url)
-    resp.raise_for_status()
-    soup = BeautifulSoup(resp.text, 'html.parser')
-    return {
-        'email': soup.find('a', href=lambda h: h and 'mailto:' in h).text.strip() if soup.find('a', href=lambda h: h and 'mailto:' in h) else '',
-        'phone': soup.find('span', class_='phone').text.strip() if soup.find('span', class_='phone') else '',
-        'fax': soup.find('span', class_='fax').text.strip() if soup.find('span', class_='fax') else '',
-        'address_full': soup.find('div', class_='address').text.strip() if soup.find('div', class_='address') else ''
-    }
+        # Ensure 'email' column exists
+        if "email" not in df.columns:
+            df["email"] = ""
 
-def main(states, per_state=100):
-    records = []
-    for st in states:
-        print(f"Fetching providers in {st}...")
-        provs = fetch_providers_by_state(st, limit=per_state)
-        for p in provs:
-            rec = parse_provider(p)
-            rec.update(lookup_license(rec['npi']))
-            records.append(rec)
-            time.sleep(1)
-    df = pd.DataFrame(records)
-    df.to_excel('providers_by_state.xlsx', index=False)
-    print("Saved to Excel.")
+        for idx, row in df.iterrows():
+            license_number = str(row["license_number"]).strip()
 
-if __name__ == '__main__':
-    main(['CA', 'NY', 'TX'], per_state=200)
+            if not license_number or license_number.lower() == "nan":
+                continue
 
+            try:
+                print(f"Searching for license: {license_number}")
+                self.driver.get(self.url)
+
+                # Fill license number
+                lic_input = self.wait.until(
+                    EC.presence_of_element_located((By.ID, "SearchDto_LicenseNumber"))
+                )
+                lic_input.clear()
+                lic_input.send_keys(license_number)
+
+                # Click search
+                search_btn = self.wait.until(EC.element_to_be_clickable(
+                    (By.CSS_SELECTOR, "fieldset.form-horizontal p.text-center input.btn.btn-primary")
+                ))
+                search_btn.click()
+
+                # Wait for result
+                self.wait.until(EC.presence_of_element_located(
+                    (By.CSS_SELECTOR, "div#content")
+                ))
+
+                email_found = ""
+
+                # --- Search inside General Information and other tabs ---
+                tabs = self.driver.find_elements(By.CSS_SELECTOR, "ul.nav.nav-tabs li a")
+                for tab in tabs:
+                    tab.click()
+                    time.sleep(1)
+
+                    active_tab = self.driver.find_element(By.CSS_SELECTOR, "div.tab-content div.tab-pane.active")
+                    texts = active_tab.text.split("\n")
+
+                    for t in texts:
+                        if "@" in t:   # detect email
+                            email_found = t.strip()
+                            break
+
+                    if email_found:
+                        break
+
+                # Save email in DataFrame
+                df.at[idx, "email"] = email_found
+                print(f"✔ {license_number} → {email_found}")
+
+            except Exception as e:
+                print(f"❌ Error for license {license_number}: {e}")
+                continue
+
+        # Save updated file
+        df.to_excel(self.output_file, index=False)
+        self.driver.quit()
+        print("✅ Scraping completed. Emails saved to:", self.output_file)
+
+
+# --- Run Example ---
+if __name__ == "__main__":
+    input_file = r"C:\Users\jai seya ram\OneDrive\Documents\rnd project\xpresscredentialling\license.xlsx"   # yaha us file ka naam daal jha license or npi number rkhe hai 
+    output_file = r"C:\users\jai seya ram\OneDrive\Documents\rnd project\with_email2.xlsx"
+
+    scraper = FloridaEmailScraper(input_file, output_file)
+    scraper.scrape_emails()
+import time
+import pandas as pd
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+
+# --- Florida scraping class ---
+class FloridaEmailScraper:
+    def __init__(self, input_file, output_file):
+        self.input_file = input_file
+        self.output_file = output_file
+        self.url = "https://mqa-internet.doh.state.fl.us/MQASearchServices/HealthCareProviders"
+
+        options = webdriver.ChromeOptions()
+        options.add_argument("--headless")  # background mode
+        self.driver = webdriver.Chrome(options=options)
+        self.wait = WebDriverWait(self.driver, 15)
+
+    def scrape_emails(self):
+        df = pd.read_excel(self.input_file)
+
+        # Ensure 'email' column exists
+        if "email" not in df.columns:
+            df["email"] = ""
+
+        for idx, row in df.iterrows():
+            license_number = str(row["license_number"]).strip()
+
+            if not license_number or license_number.lower() == "nan":
+                continue
+
+            try:
+                print(f"Searching for license: {license_number}")
+                self.driver.get(self.url)
+
+                # Fill license number
+                lic_input = self.wait.until(
+                    EC.presence_of_element_located((By.ID, "SearchDto_LicenseNumber"))
+                )
+                lic_input.clear()
+                lic_input.send_keys(license_number)
+
+                # Click search
+                search_btn = self.wait.until(EC.element_to_be_clickable(
+                    (By.CSS_SELECTOR, "fieldset.form-horizontal p.text-center input.btn.btn-primary")
+                ))
+                search_btn.click()
+
+                # Wait for result
+                self.wait.until(EC.presence_of_element_located(
+                    (By.CSS_SELECTOR, "div#content")
+                ))
+
+                email_found = ""
+
+                # --- Search inside General Information and other tabs ---
+                tabs = self.driver.find_elements(By.CSS_SELECTOR, "ul.nav.nav-tabs li a")
+                for tab in tabs:
+                    tab.click()
+                    time.sleep(1)
+
+                    active_tab = self.driver.find_element(By.CSS_SELECTOR, "div.tab-content div.tab-pane.active")
+                    texts = active_tab.text.split("\n")
+
+                    for t in texts:
+                        if "@" in t:   # detect email
+                            email_found = t.strip()
+                            break
+
+                    if email_found:
+                        break
+
+                # Save email in DataFrame
+                df.at[idx, "email"] = email_found
+                print(f"✔ {license_number} → {email_found}")
+
+            except Exception as e:
+                print(f"❌ Error for license {license_number}: {e}")
+                continue
+
+        # Save updated file
+        df.to_excel(self.output_file, index=False)
+        self.driver.quit()
+        print("✅ Scraping completed. Emails saved to:", self.output_file)
+
+
+# --- Run Example ---
+if __name__ == "__main__":
+    input_file = r"C:\Users\jai seya ram\OneDrive\Documents\rnd project\xpresscredentialling\license.xlsx"   # yaha us file ka naam daal jha license or npi number rkhe hai 
+    output_file = r"C:\users\jai seya ram\OneDrive\Documents\rnd project\with_email2.xlsx"
+
+    scraper = FloridaEmailScraper(input_file, output_file)
+    scraper.scrape_emails()
+
+
+# link with new try file 
