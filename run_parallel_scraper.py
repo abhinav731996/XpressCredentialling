@@ -7,15 +7,12 @@ from src.domain.search_board.main_search.state_select import Med_info
 from src.domain.path.project_paths import path_obj
 from src.domain.file_io.io_file import ERRORIO
 import glob
+import traceback
 
 class SCRAPPER:
     def __init__(self):
         try:
             self.df = pd.read_excel(path_obj.arizona_npi_license_two)
-            print(f"[DEBUG] Loading file from: {path_obj.arizona_npi_license_two}")
-            print(f"[DEBUG] Shape of loaded file: {self.df.shape}")
-            print(self.df.head())
-
             self.chunks = np.array_split(self.df, 2)
         except Exception as err:
             err_obj = ERRORIO()
@@ -29,6 +26,7 @@ class SCRAPPER:
             scraper.enter_info(chunk_df,chunk_id)
             print(f"[Process {chunk_id}] Done")
         except Exception as err:
+            print("err caught from run_parellel_scrapper mod /process_chunk()")
             err_obj = ERRORIO()
             err_obj.write_file(err)
 
@@ -84,8 +82,10 @@ class SCRAPPER:
             print(f"[Merge] Saved final merged result to {output_path}")
 
         except Exception as err:
+            print("Check err log")
             err_obj = ERRORIO()
             err_obj.write_file(err)
+
 
     def create_instances(self):
         try:
@@ -96,10 +96,21 @@ class SCRAPPER:
                     futures.append(executor.submit(self.process_chunk, chunk_df, i))
 
                 for future in futures:
-                    future.result()
+                    try:
+                        result = future.result() 
+                    except Exception as err:
+                        print(f"[ERROR] Future failed: {err}")
+                        err_obj = ERRORIO()
+                        err_obj.write_file(traceback.format_exc())
+
+        except KeyboardInterrupt:
+            print("\n handling manuall key interupt by mistake")
+            executor.shutdown(wait=False, cancel_futures=True)
+            raise
         except Exception as err:
             err_obj = ERRORIO()
-            err_obj.write_file(err)
+            err_obj.write_file(traceback.format_exc())
+
 
 if __name__ == '__main__':
     scraper_obj = SCRAPPER()
