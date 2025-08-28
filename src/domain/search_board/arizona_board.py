@@ -7,6 +7,7 @@ from src.domain.file_io.io_file import ERRORIO
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 from src.domain.helper.name_match import name_match_obj
+import traceback
 
 
 class ARIZONA:
@@ -25,14 +26,14 @@ class ARIZONA:
             else:
                 licenses_to_check = [all_info.get("license_number")]
 
-            for lic in licenses_to_check:
+            for lc_no in licenses_to_check:
                 try:
                     driver.get(path_obj.arizona_lookup_url)
 
-                    if lic:
+                    if lc_no:
                         license_input = wait.until(EC.presence_of_element_located((By.ID, "ContentPlaceHolder1_txtLicNum")))
                         license_input.clear()
-                        license_input.send_keys(lic)
+                        license_input.send_keys(lc_no)
                     else:
                         first_name_input = wait.until(EC.presence_of_element_located((By.ID, "ContentPlaceHolder1_txtFirstName")))
                         last_name_input = driver.find_element(By.ID, "ContentPlaceHolder1_txtFirstName")
@@ -47,14 +48,19 @@ class ARIZONA:
                     license_button = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "#ContentPlaceHolder1_btnLicense")))
                     license_button.click()
 
-                    name_cell = wait.until(EC.presence_of_element_located((
-                        By.CSS_SELECTOR,
-                        "#ContentPlaceHolder1_dtgList > tbody > tr.headerBlue.Verdana10Center > td:nth-child(2)"
-                    )))
+                    name_cell = WebDriverWait(driver, 20).until(
+                        EC.visibility_of_element_located((
+                            By.CSS_SELECTOR,
+                            "#ContentPlaceHolder1_dtgList > tbody > tr.headerBlue.Verdana10Center > td:nth-child(2)"
+                        ))
+                    )
+
                     name_text = name_cell.text.strip()
 
-                    
-                    name_only = name_text.split("Specialty")[0].strip() if "Specialty" in name_text else name_text
+                    if "Specialty" in name_text:
+                        name_only = name_text.split("Specialty")[0].strip()
+                    else:
+                        name_only = name_text
 
                     if name_match_obj.is_name_match(first_name, last_name,name_only):
                         result_link = wait.until(EC.element_to_be_clickable((
@@ -63,11 +69,10 @@ class ARIZONA:
                         )))
                         result_link.click()
                     else:
-                        print("Details dont match...Checking next License Number")
+                        print(f"Details dont match for {lc_no}...Checking next License Number")
                         continue
 
                     WebDriverWait(driver, 10).until(lambda d: len(d.window_handles) > 1)
-                    
                     driver.switch_to.window(driver.window_handles[-1])
 
                     
@@ -122,30 +127,36 @@ class ARIZONA:
                     }]
 
                     result_df = pd.DataFrame(data)
-                    print(result_df)
                     return result_df
 
-                except Exception as e:
+                except Exception as err:
+                    print(f"Check err log for {npi_number} in Except block")
                     err_obj = ERRORIO()
-                    err_obj.write_file(err)
+                    err_obj.write_file(traceback.format_exc())
                     continue
 
                 finally:
-                    handles = driver.window_handles
-                    if len(handles) > 1:
-                        try:
-                            time.sleep(1) 
-                            driver.close()
-                        except:
-                            pass
-                        try:
-                            driver.switch_to.window(handles[0])
-                        except:
-                            pass
+                    try:
+                        if driver.session_id:
+                            handles = driver.window_handles
+                            if len(handles) > 1:
+                                current_handle = driver.current_window_handle
+                                original_handle = handles[0]
+                                if current_handle != original_handle:
+                                    driver.close()
+                                    if original_handle in driver.window_handles:
+                                        driver.switch_to.window(original_handle)
+                    except Exception:
+                        print(f"Check err log for {npi_number} caught in fianlly block")
+                        # print("Check err log in finally block")
+                        err_obj = ERRORIO()
+                        err_obj.write_file(traceback.format_exc())
+
 
             return None 
 
         except Exception as err:
+            print("Check err log")
             err_obj = ERRORIO()
             err_obj.write_file(err)
             return None
