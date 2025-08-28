@@ -38,6 +38,7 @@ class Med_info:
             print(f"[{os.getpid()}] Wrote chunk to {output_file}")
             # print(df)
         except Exception as err:
+            print("Check err log")
             err_obj = ERRORIO()
             err_obj.write_file(err)
 
@@ -56,6 +57,7 @@ class Med_info:
 
             return list(variants)
         except Exception as err:
+            print("Check err log")
             err_obj = ERRORIO()
             err_obj.write_file(err)
 
@@ -67,16 +69,14 @@ class Med_info:
             prefs = {"profile.managed_default_content_settings.images": 2}
             options.add_experimental_option("prefs", prefs)
             options.add_argument("--headless=new")
-            # options.add_argument('-–start-maximized')
+            # options.add_argument('--start-maximized')
             options.add_argument("--log-level=0")  # 0 = ALL, 3 = SEVERE
             options.add_experimental_option("excludeSwitches", ["enable-logging"])
             # options.add_argument("--no-sandbox")
+            
 
-            driver_path = r"C:\Users\DELL\.wdm\drivers\chromedriver\win64\139.0.7258.154\chromedriver-win32\chromedriver.exe"
-            service = Service(driver_path)
+            service = Service(ChromeDriverManager().install())
             driver = webdriver.Chrome(service=service, options=options)
-
-            # driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
             wait = WebDriverWait(driver, 10)
 
             results = []
@@ -171,6 +171,7 @@ class Med_info:
                         print(f"Unsupported state: {taxonomy_state}")
                         continue
                 except Exception as err:
+                    print("Check err log")
                     err_obj = ERRORIO()
                     err_obj.write_file(err)
 
@@ -182,6 +183,7 @@ class Med_info:
             driver.quit()
 
         except Exception as err:
+            print("Check err log")
             err_obj = ERRORIO()
             err_obj.write_file(err)
  
