@@ -64,7 +64,3 @@ class NPI_API:
             print(" No results found")
 
 
-if __name__ == "__main__":
-    print(" start NPI  script")
-    fetcher = NPI_API()
-    fetcher.api_fetch()
