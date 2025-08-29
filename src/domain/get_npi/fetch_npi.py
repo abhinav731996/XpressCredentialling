@@ -9,7 +9,7 @@ from src.domain.path.project_paths import path_obj
 class NPI_API:
     def __init__(self):
         print(" Reading input Excel file...")
-        self.df = pd.read_excel(path_obj.arizona_input_famprac)
+        self.df = pd.read_excel(path_obj.client_az_sheet_npi)
         print(" File read complete")
         self.npi_list = self.df["National Provider Identifier"].dropna().astype(str).tolist()
         self.session = requests.Session()  # Reuse connections
@@ -58,7 +58,7 @@ class NPI_API:
 
         if all_results:
             df = pd.json_normalize(all_results)
-            df.to_excel(path_obj.arizona_npi_license, index=False) # update path before running
+            df.to_excel(path_obj.az_npi_details_api, index=False) # update path before running
             print(" Records saved to Excel")
         else:
             print(" No results found")
