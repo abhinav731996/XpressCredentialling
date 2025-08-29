@@ -12,7 +12,7 @@ import traceback
 class SCRAPPER:
     def __init__(self):
         try:
-            self.df = pd.read_excel(path_obj.arizona_npi_license_two)
+            self.df = pd.read_excel(path_obj.az_npi_details_api)
             self.chunks = np.array_split(self.df, 2)
         except Exception as err:
             err_obj = ERRORIO()
@@ -32,7 +32,7 @@ class SCRAPPER:
 
 
     def merge_outputs(self):
-        try:
+        try: 
             os.makedirs(path_obj.temp_output_dir, exist_ok=True)
 
             chunk_files = glob.glob(os.path.join(path_obj.temp_output_dir, "*.xlsx"))
@@ -53,7 +53,7 @@ class SCRAPPER:
             new_data = pd.concat(all_dfs, ignore_index=True)
             new_data.columns = new_data.columns.str.strip()
 
-            output_path = r"D:\Repositories\XpressCredentialling\src\database\test\arizona_famprac.xlsx"
+            output_path = path_obj.client_az_sheet_npi
             if os.path.exists(output_path):
                 master_df = pd.read_excel(output_path)
                 master_df.columns = master_df.columns.str.strip()
@@ -86,7 +86,6 @@ class SCRAPPER:
             err_obj = ERRORIO()
             err_obj.write_file(err)
 
-
     def create_instances(self):
         try:
             with ProcessPoolExecutor(max_workers=2) as executor:
@@ -104,7 +103,7 @@ class SCRAPPER:
                         err_obj.write_file(traceback.format_exc())
 
         except KeyboardInterrupt:
-            print("\n handling manuall key interupt by mistake")
+            print("\n handling manual key interupt by mistake")
             executor.shutdown(wait=False, cancel_futures=True)
             raise
         except Exception as err:
