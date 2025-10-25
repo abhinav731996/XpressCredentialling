@@ -19,5 +19,18 @@ class PATHS:
     # DataBase
     temp_output_dir = Path(r"D:\Repositories\XpressCredentialling\src\database\temp_outputs")
 
+    # all states of "surgery" speciality
+    american_board_surgeon = "https://www.facs.org/find-a-surgeon/"
+    surgery_test_npi = r"D:\Repositories\XpressCredentialling\src\database\npi_test_surgery.xlsx" 
+
+    # 24 Test
+    all_states_surgery_npi_test = r"D:\Repositories\XpressCredentialling\src\database\all_states_surgery_npi_test.xlsx"
+    all_states_surgery_npi_result = r"D:\Repositories\XpressCredentialling\all_states_surgery_npi_result.xlsx"
+
+
+    # data saving test
+    client_data = r"D:\Repositories\XpressCredentialling\src\database\client_data.xlsx"
+    client_data_result = r"D:\Repositories\XpressCredentialling\src\database\client_data_result.xlsx"
+    combined_chunks_file = r"D:\Repositories\XpressCredentialling\src\database\temp_outputs\combined_chunks_file.xlsx"
 path_obj = PATHS()
 
