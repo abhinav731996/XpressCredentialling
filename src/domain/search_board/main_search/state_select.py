@@ -1,21 +1,27 @@
-import pandas as pd
-import os, sys, ast
-import time, random,re
-sys.path.append(os.getcwd())
-from src.domain.search_board.florida_board import fl_obj
-from src.domain.search_board.arizona_board import az_obj
-from src.domain.file_io.io_file import ERRORIO
-from src.domain.path.project_paths import path_obj
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.support.ui import WebDriverWait
-from webdriver_manager.chrome import ChromeDriverManager
 from pathlib import Path
+from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.options import Options
+from selenium import webdriver
+from src.domain.path.project_paths import path_obj
+from src.domain.file_io.io_file import ERRORIO
+from src.domain.search_board.arizona_board import az_obj
+from src.domain.search_board.florida_board import fl_obj
+from src.domain.search_board.all_states_surgery.speciality_surgery import surgery_obj
+import pandas as pd
+import os
+import sys
+import ast
+import time
+import random
+import re
+sys.path.append(os.getcwd())
 # import tempfile
 # import shutil
 
-# from src.domain.search_board.google_api import GOOGLESEARCAPI 
+# from src.domain.search_board.google_api import GOOGLESEARCAPI
+
 
 class Med_info:
     def __init__(self):
@@ -23,7 +29,8 @@ class Med_info:
 
     def clean_license(self, df, state):
         if state in ["AZ", "FL"] and "license_number" in df.columns:
-            df["license_number"] = df["license_number"].astype(str).str.replace("License Number:", "").str.strip()
+            df["license_number"] = df["license_number"].astype(
+                str).str.replace("License Number:", "").str.strip()
         return df
 
     def write_file(self, select_state, state_df_result, chunk_id):
@@ -42,7 +49,7 @@ class Med_info:
             err_obj = ERRORIO()
             err_obj.write_file(err)
 
-    def normalize_license(self,license_number: str) -> list[str]:
+    def normalize_license(self, license_number: str) -> list[str]:
         try:
             if not license_number:
                 return []
@@ -52,7 +59,8 @@ class Med_info:
 
             variants.add(lic)
             variants.add(lic.replace(" ", ""))
-            variants.add(re.sub(r"([A-Za-z]+)(\d+)", r"\1 \2", lic.replace(" ", "")))
+            variants.add(re.sub(r"([A-Za-z]+)(\d+)",
+                         r"\1 \2", lic.replace(" ", "")))
             variants.add(lic.replace("-", ""))
 
             return list(variants)
@@ -60,7 +68,6 @@ class Med_info:
             print("Check err log")
             err_obj = ERRORIO()
             err_obj.write_file(err)
-
 
     def enter_info(self, npi_df: pd.DataFrame,  chunk_id: int):
         try:
@@ -71,16 +78,23 @@ class Med_info:
             options.add_argument("--headless=new")
             # options.add_argument('--start-maximized')
             options.add_argument("--log-level=0")  # 0 = ALL, 3 = SEVERE
-            options.add_experimental_option("excludeSwitches", ["enable-logging"])
+            options.add_experimental_option(
+                "excludeSwitches", ["enable-logging"])
             # options.add_argument("--no-sandbox")
-            
 
             service = Service(ChromeDriverManager().install())
             driver = webdriver.Chrome(service=service, options=options)
             wait = WebDriverWait(driver, 10)
 
             results = []
-            selected_state = {"FL","AZ"}
+            selected_state = {
+                "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA",
+                "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD",
+                "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ",
+                "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC",
+                "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY",
+                "DC", "AS", "GU", "MP", "PR", "VI"
+            }
 
             for _, record in npi_df.iterrows():
                 npi_number = str(record["number"]).strip()
@@ -106,70 +120,79 @@ class Med_info:
                     state = (taxo.get("state") or "").strip().upper()
                     is_primary = taxo.get("primary", False)
 
-                    
-
                     if state in selected_state and is_primary:
                         state_primary_taxonomy = taxo
-                        break  
+                        break
                     elif state in selected_state and not state_any_taxonomy:
-                        state_any_taxonomy = taxo 
+                        state_any_taxonomy = taxo
 
                 selected_taxonomy = state_primary_taxonomy or state_any_taxonomy
 
                 if selected_taxonomy:
-                    license_number = (selected_taxonomy.get("license") or "").strip() 
-                    taxonomy_state = (selected_taxonomy.get("state") or "").strip().upper()
+                    license_number = (selected_taxonomy.get(
+                        "license") or "").strip()
+                    taxonomy_state = (selected_taxonomy.get(
+                        "state") or "").strip().upper()
 
                     if re.fullmatch(r"\d+", license_number) and taxonomy_state == "FL":
-                        license_variants = [f"ME{license_number}", f"OS{license_number}"]
+                        license_variants = [
+                            f"ME{license_number}", f"OS{license_number}"]
 
-                    elif taxonomy_state  == "AZ":
-                        match = re.fullmatch(r"(az)?(\d+)", license_number, re.IGNORECASE)
+                    elif taxonomy_state == "AZ":
+                        match = re.fullmatch(
+                            r"(az)?(\d+)", license_number, re.IGNORECASE)
                         if match:
-                            license_variants = [match.group(2)] 
-                        # license_variants = [license_number]    
-                        else:
-                            license_variants = self.normalize_license(license_number)
+                            license_variants = [match.group(2)]
+                        # license_variants = [license_number]
+                    else:
+                        license_variants = self.normalize_license(license_number)
                 else:
-                    print(f"[{os.getpid()}] No results found for chunk {chunk_id}")
+                    print(
+                        f"[{os.getpid()}] No results found for chunk {chunk_id}")
                     license_number = ""
                     taxonomy_state = ""
-                    license_variants = []
+                    license_variants = ""
 
                 all_info = {
                     "npi_number": npi_number,
                     "license_number": license_number,
-                    "license_variants": license_variants, 
+                    "license_variants": license_variants,
                     "first_name": first_name,
                     "last_name": last_name,
                     "state_code": taxonomy_state
                 }
 
-                print(f"[{os.getpid()}] Searching NPI: {npi_number}... with license variants {license_variants}")
-
+                print(
+                    f"[{os.getpid()}] Searching NPI: {npi_number}... with license variants {license_variants}")
+                
                 try:
                     if taxonomy_state == "FL":
                         state_df_result = fl_obj.enter_details(driver, wait, **all_info)
                         if state_df_result is not None and not state_df_result.empty:
                             results.append(state_df_result)
-                        else:       
-                            print("Try with search api")                     
+                        else:
+                            print("Try with search api")
                             # search_api_obj = GOOGLESEARCAPI()
                             # fallback_data = search_api_obj.get_details_searchapi(all_info["first_name"], all_info["last_name"],all_info["npi_number"])
 
                             # if fallback_data:
                             #     fallback_df = pd.DataFrame(fallback_data)
                             #     results.append(fallback_df)
-                                
+
                             # else:
                             #     print("Fallback also failed. No data found.")
                     elif taxonomy_state == "AZ":
                         state_df_result = az_obj.enter_details(driver, wait, **all_info)
                         if state_df_result is not None and not state_df_result.empty:
-                            results.append(state_df_result)      
+                            results.append(state_df_result)
                     else:
-                        print(f"Unsupported state: {taxonomy_state}")
-                        continue
+                        state_df_result = surgery_obj.enter_details(driver, wait, **all_info)
+
+                        if state_df_result is None or state_df_result.empty:
+                            print(f"No data found for NPI {npi_number} ({first_name} {last_name})")
+                        else:
+                            results.append(state_df_result)
+
                 except Exception as err:
                     print("Check err log")
                     err_obj = ERRORIO()
@@ -186,4 +209,3 @@ class Med_info:
             print("Check err log")
             err_obj = ERRORIO()
             err_obj.write_file(err)
- 
