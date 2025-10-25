@@ -7,11 +7,11 @@ from src.domain.path.project_paths import path_obj
 
 class NPI_API:
     def __init__(self):
-        self.df = pd.read_excel(path_obj.client_data)
+        self.df = pd.read_excel(path_obj.all_states_surgery_npi_test)
         self.npi_list = self.df["National Provider Identifier"].dropna().astype(str).tolist()
 
         # Filter out already processed NPIs and sets column name if its not present
-        result_path = path_obj.client_data_result
+        result_path = path_obj.all_states_surgery_npi_result
         processed_npis = set()
 
         if os.path.exists(result_path):
@@ -74,7 +74,7 @@ class NPI_API:
         # npi result is saved 
         if all_results:
             df = pd.json_normalize(all_results)
-            result_path = path_obj.client_data_result
+            result_path = path_obj.all_states_surgery_npi_result
 
             if os.path.exists(result_path):
                 try:
