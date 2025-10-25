@@ -12,7 +12,8 @@ import traceback
 class SCRAPPER:
     def __init__(self):
         try:
-            self.df = pd.read_excel(path_obj.az_npi_details_api)
+            # self.df = pd.read_excel(r"D:\Repositories\XpressCredentialling\test_surg_exl.xlsx")
+            self.df = pd.read_excel(path_obj.client_data_result)
             self.chunks = np.array_split(self.df, 2)
         except Exception as err:
             err_obj = ERRORIO()
@@ -41,7 +42,8 @@ class SCRAPPER:
             for file in chunk_files:
                 try:
                     df = pd.read_excel(file)
-                    df.columns = df.columns.str.strip()
+                    # df.columns = df.columns.str.strip()  ##
+                    df.columns = df.columns.astype(str).str.strip()
                     all_dfs.append(df)
                 except Exception as e:
                     ERRORIO().write_file(e)
@@ -51,12 +53,14 @@ class SCRAPPER:
                 return
 
             new_data = pd.concat(all_dfs, ignore_index=True)
-            new_data.columns = new_data.columns.str.strip()
+            # new_data.columns = new_data.columns.str.strip() ##
+            new_data.columns = new_data.columns.astype(str).str.strip()
 
-            output_path = path_obj.client_az_sheet_npi
+            output_path = path_obj.combined_chunks_file
             if os.path.exists(output_path):
                 master_df = pd.read_excel(output_path)
-                master_df.columns = master_df.columns.str.strip()
+                # master_df.columns = master_df.columns.str.strip() ##
+                master_df.columns = master_df.columns.astype(str).str.strip()
             else:
                 master_df = pd.DataFrame()
 
@@ -110,9 +114,4 @@ class SCRAPPER:
             err_obj = ERRORIO()
             err_obj.write_file(traceback.format_exc())
 
-
-if __name__ == '__main__':
-    scraper_obj = SCRAPPER()
-    scraper_obj.create_instances()
-    scraper_obj.merge_outputs() 
 
