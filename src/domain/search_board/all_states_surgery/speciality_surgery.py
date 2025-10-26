@@ -59,9 +59,9 @@ class Surgery:
 
 
             data = {
-                "npi": [npi_number],
-                "name": [fullName],
-                "email": [email_address],
+                "National Provider Identifier": [npi_number],
+                "Name": [fullName],
+                "Email": [email_address],
             }
 
             result_df = pd.DataFrame(data)
