@@ -21,6 +21,16 @@ class Surgery:
 
             driver.get(path_obj.american_board_surgeon)
 
+            # Remove cookie banner if present
+            try:
+                driver.execute_script("""
+                    let el = document.querySelector('[aria-label="Cookie Consent Banner"]');
+                    if (el) el.remove();
+                """)
+            except:
+                pass
+
+
             name_input = wait.until(EC.element_to_be_clickable((
                 By.CSS_SELECTOR,
                 "input.listing-filter-profile-search__search-textfield.js-search-term"
