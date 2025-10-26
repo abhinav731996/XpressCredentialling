@@ -8,6 +8,8 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 # from src.domain.helper.name_match import name_match_obj
 from selenium.webdriver.common.keys import Keys
+from selenium.common.exceptions import TimeoutException
+
 
 class Surgery:
     def __init__(self):
@@ -48,12 +50,26 @@ class Surgery:
             except:
                 pass
 
-            first_result = wait.until(EC.element_to_be_clickable((
-                By.CSS_SELECTOR,
-                "div.listing__results.js-results-container h2"
-            )))
-            time.sleep(5)
-            first_result.click()
+            # first_result = wait.until(EC.element_to_be_clickable((
+            #     By.CSS_SELECTOR,
+            #     "div.listing__results.js-results-container h2"
+            # )))
+            # time.sleep(5)
+            # first_result.click()
+
+            try:
+                first_result = wait.until(
+                    EC.element_to_be_clickable((
+                        By.CSS_SELECTOR,
+                        "div.listing__results.js-results-container h2"
+                    ))
+                )
+                time.sleep(3)
+                first_result.click()
+
+            except TimeoutException:
+                print(f" No results found for: {fullName} ({npi_number})")
+                return None  
 
 
 
