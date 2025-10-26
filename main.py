@@ -10,4 +10,4 @@ if __name__ == "__main__":
     scraper_obj = SCRAPPER()
     scraper_obj.create_instances()
 
-    scraper_obj.merge_outputs()
+    scraper_obj.export_final_excel()
