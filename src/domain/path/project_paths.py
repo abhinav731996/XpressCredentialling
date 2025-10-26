@@ -24,8 +24,8 @@ class PATHS:
     surgery_test_npi = r"D:\Repositories\XpressCredentialling\src\database\npi_test_surgery.xlsx" 
 
     # 24 Test
-    all_states_surgery_npi_test = r"D:\Repositories\XpressCredentialling\src\database\all_states_surgery_npi_test.xlsx"
-    all_states_surgery_npi_result = r"D:\Repositories\XpressCredentialling\src\database\all_states_surgery_npi_result.xlsx"
+    all_states_surgery_npi_test = r"D:\Repositories\XpressCredentialling\src\database\temp_outputs\all_states_surgery_npi_test.xlsx"
+    all_states_surgery_npi_result = r"D:\Repositories\XpressCredentialling\src\database\temp_outputs\all_states_surgery_npi_result.xlsx"
 
 
     # data saving test
