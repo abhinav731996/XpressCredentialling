@@ -91,10 +91,7 @@ class Surgery:
             }
 
             result_df = pd.DataFrame(data)
-            print("result_df")
-            print(npi_number)
-            print(fullName)
-            print(email_address)
+            print(result_df)
 
             return result_df
 
