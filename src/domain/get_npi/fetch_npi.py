@@ -5,18 +5,19 @@ import pandas as pd
 import requests
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from src.domain.path.project_paths import path_obj
-from src.domain.helper.npi_processed_check import npi_already_insheet
+from src.domain.helper.npi_processed_check import NPIMATCH
 
 class NPI_API:
     def __init__(self):
+        npi_checker = NPIMATCH(check_type='client')
         self.df = pd.read_excel(path_obj.all_states_surgery_npi_test)
         self.npi_list = self.df["National Provider Identifier"].dropna().astype(str).tolist()
-        self.npi_to_process  = npi_already_insheet.npi_present_already()
+        self.npi_to_process  = npi_checker.npi_present_already()
         
         before_count = len(self.npi_list)
-        self.npi_list = [npi for npi in self.npi_list if npi not in npi_already_insheet.processed_npis]
-        print(f"Skipping {before_count - len(self.npi_list)} already processed NPIs.")
-        print(f"Total NPIs to process: {len(self.npi_list)}")
+        self.npi_list = [npi for npi in self.npi_list if npi not in npi_checker.processed_npis]
+        print(f"{before_count - len(self.npi_list)} Npis already in nppes data sheet")
+        print(f"NPIs to send to Nppes api: {len(self.npi_list)}")
 
         self.session = requests.Session()
 
