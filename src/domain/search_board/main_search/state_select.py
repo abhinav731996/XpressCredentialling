@@ -167,8 +167,8 @@ class Med_info:
                     "state_code": taxonomy_state
                 }
 
-                print(
-                    f"[{os.getpid()}] Searching NPI: {npi_number}... with license variants {license_variants}")
+                # print(
+                #     f"[{os.getpid()}] Searching NPI: {npi_number}... with license variants {license_variants}")
                 
                 try:
                     if taxonomy_state:
