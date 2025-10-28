@@ -91,8 +91,6 @@ class Surgery:
             }
 
             result_df = pd.DataFrame(data)
-            print(result_df)
-
             return result_df
 
         except Exception as err:
