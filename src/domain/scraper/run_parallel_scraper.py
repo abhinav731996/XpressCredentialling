@@ -88,7 +88,7 @@ class SCRAPPER:
             df = pd.read_sql("SELECT * FROM npi_data", conn)
 
         df.to_excel(output_path, index=False)
-        print(f"Final Excel saved to {output_path}")
+        print("Final Sheet saved")
 
 
 
