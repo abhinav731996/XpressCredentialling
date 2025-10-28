@@ -118,10 +118,10 @@ class ARIZONA:
 
 
                     data = [{
-                        "npi": npi_number,
-                        "license_number": license_number,
+                        "National Provider Identifier": npi_number,
+                        # "License": license_number,
                         "primary_address": clinic_address,
-                        "name": doctor_name,
+                        "Name": doctor_name,
                         "clinic_name": clinic_name,
                         "clinic_phone": clinic_phone
                     }]
