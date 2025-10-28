@@ -51,10 +51,10 @@ class Florida:
                         (By.CSS_SELECTOR, "fieldset.form-horizontal p.text-center input.btn.btn-primary")))
                     search_button.click()
 
-                    wait.until(EC.presence_of_element_located(
-                        (By.CSS_SELECTOR, "div#content div.p-h-md.p-v.pos-rlt h3:nth-of-type(2)")))
-                    license_number_found = driver.find_element(
-                        By.CSS_SELECTOR, "div#content div.p-h-md.p-v.pos-rlt h3:nth-of-type(2)").text.strip()
+                    # wait.until(EC.presence_of_element_located(
+                    #     (By.CSS_SELECTOR, "div#content div.p-h-md.p-v.pos-rlt h3:nth-of-type(2)")))
+                    # license_number_found = driver.find_element(
+                    #     By.CSS_SELECTOR, "div#content div.p-h-md.p-v.pos-rlt h3:nth-of-type(2)").text.strip()
 
                     practitioner_profile_tab = WebDriverWait(driver, 10).until(
                         EC.element_to_be_clickable((By.XPATH, "//ul[contains(@class,'nav-tabs')]//a[text()='Practitioner Profile']"))
@@ -66,7 +66,10 @@ class Florida:
                     to_upper_divs = driver.find_elements(By.CSS_SELECTOR, "div.tab-pane.active div.toUpper")
                     if len(to_upper_divs) >= 5:
                         site_name = to_upper_divs[0].text.strip()
+                        
+                        # function that check names(Loosely) Nppes & Specific website  
                         is_matched = name_match_obj.is_name_match(first_name, last_name, site_name)
+                        
                         if not is_matched:
                             continue
                         address_parts = []
@@ -87,42 +90,43 @@ class Florida:
 
                     email = email_p.find_element(By.TAG_NAME, "strong").text.strip() if email_p else ""
 
-                    edu_tab = wait.until(EC.element_to_be_clickable(
-                        (By.CSS_SELECTOR, "#content > div > div:nth-child(8) > ul > li:nth-child(2) > a")
-                    ))
-                    edu_tab.click()
+                    # edu_tab = wait.until(EC.element_to_be_clickable(
+                    #     (By.CSS_SELECTOR, "#content > div > div:nth-child(8) > ul > li:nth-child(2) > a")
+                    # ))
+                    # edu_tab.click()
 
     
-                    wait.until(EC.presence_of_element_located((By.ID, "EducationAndTraining")))
+                    # wait.until(EC.presence_of_element_located((By.ID, "EducationAndTraining")))
 
-                    education_data = []
-                    indices = [3, 6, 9]
+                    # education_data = []
+                    # indices = [3, 6, 9]
 
-                    for idx in indices:
-                        try:
-                            selector = f"#EducationAndTraining > table:nth-child({idx}) > tbody > tr > td:nth-child(1)"
-                            edu_td = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, selector)))
-                            education_data.append(edu_td.text.strip())
-                        except:
-                            education_data.append("")
+                    # for idx in indices:
+                    #     try:
+                    #         selector = f"#EducationAndTraining > table:nth-child({idx}) > tbody > tr > td:nth-child(1)"
+                    #         edu_td = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, selector)))
+                    #         education_data.append(edu_td.text.strip())
+                    #     except:
+                    #         education_data.append("")
 
-                    education_data = (education_data + ["", "", ""])[:3]
-         
+                    # education_data = (education_data + ["", "", ""])[:3]
+                    full_name = f"{first_name} {last_name}"
                     data = {
-                        "npi": npi_number,
-                        "license_number": [license_number_found],
-                        "primary_address": [primary_address],
-                        "name": [name],
-                        "email": [email],
-                        "institution_name": [education_data[0]],
-                        "university_school": [education_data[1]],
-                        "program_name": [education_data[2]]
+                        "National Provider Identifier": npi_number,
+                        "Name": [full_name],
+                        "Email": [email],
+                        # "License": [license_number_found],
+                        # "primary_address": [primary_address],
+
+                        # "institution_name": [education_data[0]],
+                        # "university_school": [education_data[1]],
+                        # "program_name": [education_data[2]]
                     }
                     result_df = pd.DataFrame(data)
                     
                     return result_df
 
-                except Exception:
+                except Exception as err:
                     err_obj = ERRORIO()
                     err_obj.write_file(err)
                     continue

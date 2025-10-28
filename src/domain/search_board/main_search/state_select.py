@@ -1,4 +1,3 @@
-from pathlib import Path
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.chrome.service import Service
@@ -6,9 +5,11 @@ from selenium.webdriver.chrome.options import Options
 from selenium import webdriver
 from src.domain.path.project_paths import path_obj
 from src.domain.file_io.io_file import ERRORIO
-from src.domain.search_board.arizona_board import az_obj
+# from src.domain.search_board.arizona_board import az_obj
 from src.domain.search_board.florida_board import fl_obj
 from src.domain.search_board.all_states_surgery.speciality_surgery import surgery_obj
+from src.domain.search_board.minnesota_board import mn_obj
+from src.domain.helper.save_db import save_db_obj
 import pandas as pd
 import os
 import sys
@@ -16,7 +17,6 @@ import ast
 import time
 import random
 import re
-import sqlite3
 sys.path.append(os.getcwd())
 # import tempfile
 # import shutil
@@ -33,22 +33,6 @@ class Med_info:
             df["license_number"] = df["license_number"].astype(
                 str).str.replace("License Number:", "").str.strip()
         return df
-
-    # def write_file(self, select_state, state_df_result, chunk_id):
-    #     try:
-    #         df = self.clean_license(state_df_result.copy(), select_state)
-
-    #         output_dir = Path(path_obj.temp_output_dir)
-    #         output_dir.mkdir(parents=True, exist_ok=True)
-
-    #         output_file = output_dir / f"chunk_{chunk_id}.xlsx"
-    #         df.to_excel(output_file, index=False)
-    #         print(f"[{os.getpid()}] Wrote chunk to {output_file}")
-    #         # print(df)
-    #     except Exception as err:
-    #         print("Check err log")
-    #         err_obj = ERRORIO()
-    #         err_obj.write_file(err)
 
     def normalize_license(self, license_number: str) -> list[str]:
         try:
@@ -83,9 +67,6 @@ class Med_info:
             options.add_experimental_option(
                 "excludeSwitches", ["enable-logging"])
             # options.add_argument("--no-sandbox")
-
-
-
 
             service = Service(ChromeDriverManager().install())
             driver = webdriver.Chrome(service=service, options=options)
@@ -171,71 +152,23 @@ class Med_info:
                     f"[{os.getpid()}] Searching NPI: {npi_number}... with license variants {license_variants}")
                 
                 try:
-                    if taxonomy_state:
+                    if taxonomy_state == "MN":
+                        state_df_result = mn_obj.enter_details(driver, wait, **all_info)
+                    elif taxonomy_state == "FL":
+                        state_df_result = fl_obj.enter_details(driver, wait, **all_info)
+                    else:  
                         state_df_result = surgery_obj.enter_details(driver, wait, **all_info)
 
-                        if state_df_result is None or not isinstance(state_df_result, pd.DataFrame) or state_df_result.empty:
-                            continue
-                        # retry logic for SQLite lock
-                        for attempt in range(3):
-                            try:
-                                with sqlite3.connect(db_path, timeout=30) as conn:
-                                    state_df_result.to_sql("npi_data", conn, if_exists="append", index=False)
-                                break
-                            except sqlite3.OperationalError as e:
-                                if "database is locked" in str(e).lower():
-                                    time.sleep(1)
-                                else:
-                                    raise    
-
-                    # if taxonomy_state == "FL":
-                    #     state_df_result = fl_obj.enter_details(driver, wait, **all_info)
-                    #     if state_df_result is not None and not state_df_result.empty:
-                    #         results.append(state_df_result)
-                    #     else:
-                    #         print("Try with search api")
-                    #         # search_api_obj = GOOGLESEARCAPI()
-                    #         # fallback_data = search_api_obj.get_details_searchapi(all_info["first_name"], all_info["last_name"],all_info["npi_number"])
-
-                    #         # if fallback_data:
-                    #         #     fallback_df = pd.DataFrame(fallback_data)
-                    #         #     results.append(fallback_df)
-
-                    #         # else:
-                    #         #     print("Fallback also failed. No data found.")
-                    # elif taxonomy_state == "AZ":
-                    #     state_df_result = az_obj.enter_details(driver, wait, **all_info)
-                    #     if state_df_result is not None and not state_df_result.empty:
-                    #         results.append(state_df_result)
-                    # else:
-                    #     state_df_result = surgery_obj.enter_details(driver, wait, **all_info)
-
-                    #     if state_df_result is None or not isinstance(state_df_result, pd.DataFrame) or state_df_result.empty:
-                    #         continue
-                    #     # retry logic for SQLite lock
-                    #     for attempt in range(3):
-                    #         try:
-                    #             with sqlite3.connect(db_path, timeout=30) as conn:
-                    #                 state_df_result.to_sql("npi_data", conn, if_exists="append", index=False)
-                    #             break
-                    #         except sqlite3.OperationalError as e:
-                    #             if "database is locked" in str(e).lower():
-                    #                 time.sleep(1)
-                    #             else:
-                    #                 raise    
-                        # else:
-                        #     results.append(state_df_result)
-
+                    print(state_df_result)
+                    if state_df_result is None or not isinstance(state_df_result, pd.DataFrame) or state_df_result.empty:
+                        continue
+                    save_db_obj.realtime_save_in_db(state_df_result)
                 except Exception as err:
                     print("Check err log")
                     err_obj = ERRORIO()
                     err_obj.write_file(err)
 
                 time.sleep(random.uniform(1, 2))
-
-            # if results:
-            #     final_df = pd.concat(results, ignore_index=True)
-            #     self.write_file(taxonomy_state, final_df, chunk_id)
             driver.quit()
 
         except Exception as err:
