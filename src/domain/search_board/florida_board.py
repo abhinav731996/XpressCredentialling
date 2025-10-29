@@ -7,6 +7,8 @@ from src.domain.file_io.io_file import ERRORIO
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 from src.domain.helper.name_match import name_match_obj
+from selenium.common.exceptions import TimeoutException
+
 
 class Florida:
     def __init__(self):
@@ -56,10 +58,22 @@ class Florida:
                     # license_number_found = driver.find_element(
                     #     By.CSS_SELECTOR, "div#content div.p-h-md.p-v.pos-rlt h3:nth-of-type(2)").text.strip()
 
-                    practitioner_profile_tab = WebDriverWait(driver, 10).until(
-                        EC.element_to_be_clickable((By.XPATH, "//ul[contains(@class,'nav-tabs')]//a[text()='Practitioner Profile']"))
-                    )
-                    practitioner_profile_tab.click()
+                    try:
+                        # Wait for results container first
+                        WebDriverWait(driver, 15).until(
+                            EC.presence_of_element_located((By.CSS_SELECTOR, "div#content div.p-h-md.p-v.pos-rlt"))
+                        )
+
+                        # Wait for Practitioner Profile tab
+                        practitioner_profile_tab = WebDriverWait(driver, 10).until(
+                            EC.element_to_be_clickable((By.XPATH, "//ul[contains(@class,'nav-tabs')]//a[text()='Practitioner Profile']"))
+                        )
+                        practitioner_profile_tab.click()
+
+                    except TimeoutException:
+                        print(f"No 'Practitioner Profile' tab found for license: {lic}")
+                        return None
+                    
 
                     wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "div.tab-content div.tab-pane.active")))
 
@@ -89,41 +103,17 @@ class Florida:
                             break
 
                     email = email_p.find_element(By.TAG_NAME, "strong").text.strip() if email_p else ""
-
-                    # edu_tab = wait.until(EC.element_to_be_clickable(
-                    #     (By.CSS_SELECTOR, "#content > div > div:nth-child(8) > ul > li:nth-child(2) > a")
-                    # ))
-                    # edu_tab.click()
-
-    
-                    # wait.until(EC.presence_of_element_located((By.ID, "EducationAndTraining")))
-
-                    # education_data = []
-                    # indices = [3, 6, 9]
-
-                    # for idx in indices:
-                    #     try:
-                    #         selector = f"#EducationAndTraining > table:nth-child({idx}) > tbody > tr > td:nth-child(1)"
-                    #         edu_td = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, selector)))
-                    #         education_data.append(edu_td.text.strip())
-                    #     except:
-                    #         education_data.append("")
-
-                    # education_data = (education_data + ["", "", ""])[:3]
                     full_name = f"{first_name} {last_name}"
                     data = {
                         "National Provider Identifier": npi_number,
                         "Name": [full_name],
                         "Email": [email],
-                        # "License": [license_number_found],
-                        # "primary_address": [primary_address],
-
-                        # "institution_name": [education_data[0]],
-                        # "university_school": [education_data[1]],
-                        # "program_name": [education_data[2]]
                     }
-                    result_df = pd.DataFrame(data)
+
+                    if not email or email.strip() in ["", "-", "N/A", "None", "NA"]: #not email checks for  "None"
+                        return None
                     
+                    result_df = pd.DataFrame(data)
                     return result_df
 
                 except Exception as err:

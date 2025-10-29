@@ -3,7 +3,7 @@ sys.path.append(os.getcwd())
 from src.domain.path.project_paths import path_obj
 import pandas as pd
 from selenium.webdriver.common.by import By
-
+from selenium.webdriver.support.ui import WebDriverWait
 from src.domain.file_io.io_file import ERRORIO
 from selenium.webdriver.support import expected_conditions as EC
 from src.domain.helper.name_match import name_match_obj
@@ -25,11 +25,12 @@ class Minnesota:
                 licenses_to_check = [all_info.get("license_number")]
 
             for lic in licenses_to_check:
+                email_value = None
                 try:
                     driver.get(path_obj.minnesota_med_board_url)
 
                     if lic:
-                        license_input = wait.until(
+                        license_input = WebDriverWait(driver, 10).until(
                             EC.presence_of_element_located((By.ID, "LicenseNumber"))
                         )
                         license_input.clear()
@@ -46,10 +47,7 @@ class Minnesota:
                         first_name_input.send_keys(first_name)
                         last_name_input.clear()
                         last_name_input.send_keys(last_name)
-                        # zip_input.clear()
-                        # zip_input.send_keys(all_info.get("zip_code", ""))
-                        # city_input.clear()
-                        # city_input.send_keys(all_info.get("city_name", ""))
+
 
                     search_button = wait.until(
                         EC.element_to_be_clickable((
@@ -114,23 +112,15 @@ class Minnesota:
                         email_value = None
                         print(f"Email not Found or Extarcted")
 
-                    try:
-                        license_element = wait.until(EC.presence_of_element_located((
-                            By.CSS_SELECTOR,
-                            "#printKey > div:nth-child(3) > reach-container > bmp-license-list "
-                            "> div > div.p-mb-2.ng-star-inserted > div.p-d-block.reach-print-flex.p-d-sm-flex "
-                            "> div.p-grid.p-nogutter > div:nth-child(2) > span.p-col"
-                        )))
-                        license_found = license_element.text.strip()
-                    except Exception as e:
-                        license_found = None
-
                     data = {
                         "National Provider Identifier": [npi_number],
-                        # "License": [license_found],
                         "Name": [f"{first_name} {last_name}"],
                         "Email": [email_value],
                     }
+
+                    if not email_value or email_value.strip() in ["", "-", "N/A", "None", "NA"]:
+                        return None
+
                     result_df = pd.DataFrame(data)
                     return result_df
                     
