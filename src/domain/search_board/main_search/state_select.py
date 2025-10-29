@@ -1,3 +1,8 @@
+# import warnings
+
+# warnings.simplefilter(action='ignore', category=FutureWarning)
+# warnings.simplefilter(action='ignore', category=UserWarning) 
+
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.chrome.service import Service
@@ -56,20 +61,29 @@ class Med_info:
 
     def enter_info(self, npi_df: pd.DataFrame,  chunk_id: int):
         try:
-            print(chunk_id)
+            # print(chunk_id)
             db_path = path_obj.combined_chunks_file.replace(".xlsx", ".db")
             options = Options()
+            # images disable
             prefs = {"profile.managed_default_content_settings.images": 2}
             options.add_experimental_option("prefs", prefs)
-            options.add_argument("--headless=new")
-            # options.add_argument('--start-maximized')
-            options.add_argument("--log-level=0")  # 0 = ALL, 3 = SEVERE
-            options.add_experimental_option(
-                "excludeSwitches", ["enable-logging"])
+            options.add_argument("--headless=new") 
+            # options.add_argument("--start-maximized")
+            options.add_argument("--silent")
+            # chrome logs
+            options.add_argument("--log-level=3")  # 0 = ALL, 3 = SEVERE
+            options.add_experimental_option("excludeSwitches", ["enable-logging", "enable-automation"])
+            
+            # Disable DevTools banner
+            # options.add_argument("--disable-dev-shm-usage")
             # options.add_argument("--no-sandbox")
 
             service = Service(ChromeDriverManager().install())
+            orig_stderr = sys.stderr
+            sys.stderr = open(os.devnull, 'w') 
             driver = webdriver.Chrome(service=service, options=options)
+            sys.stderr.close()
+            sys.stderr = orig_stderr
             wait = WebDriverWait(driver, 10)
 
             results = []
@@ -129,12 +143,10 @@ class Med_info:
                             r"(az)?(\d+)", license_number, re.IGNORECASE)
                         if match:
                             license_variants = [match.group(2)]
-                        # license_variants = [license_number]
                     else:
                         license_variants = self.normalize_license(license_number)
                 else:
-                    print(
-                        f"[{os.getpid()}] No results found for chunk {chunk_id}")
+                    print(f"[{os.getpid()}] No results found for chunk {chunk_id}")
                     license_number = ""
                     taxonomy_state = ""
                     license_variants = ""
@@ -148,9 +160,8 @@ class Med_info:
                     "state_code": taxonomy_state
                 }
 
-                print(
-                    f"[{os.getpid()}] Searching NPI: {npi_number}... with license variants {license_variants}")
-                
+                # print(f"[{os.getpid()}] Searching NPI: {npi_number}... with license variants {license_variants}")
+                print(f"Searching NPI: {npi_number}... with license variants {license_variants}")
                 try:
                     if taxonomy_state == "MN":
                         state_df_result = mn_obj.enter_details(driver, wait, **all_info)
