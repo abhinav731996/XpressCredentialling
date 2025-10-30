@@ -28,6 +28,7 @@ class SCRAPPER:
 
             if self.df.empty:
                 print("No new NPIs to process — all are already present.")
+                self.chunks = []
             else:
                 print(f"{len(self.df)} new NPIs will be sent to website for scrap")
                 self.chunks = np.array_split(self.df, 2)
@@ -50,6 +51,9 @@ class SCRAPPER:
             err_obj.write_file(err)
 
     def create_instances(self):
+        if not self.chunks:
+            print("No chunks to process, exiting.")
+            return
         try:
             with ProcessPoolExecutor(max_workers=2) as executor:
                 futures = []
