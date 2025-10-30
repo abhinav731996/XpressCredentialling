@@ -1,8 +1,3 @@
-# import warnings
-
-# warnings.simplefilter(action='ignore', category=FutureWarning)
-# warnings.simplefilter(action='ignore', category=UserWarning) 
-
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.chrome.service import Service
@@ -49,8 +44,7 @@ class Med_info:
 
             variants.add(lic)
             variants.add(lic.replace(" ", ""))
-            variants.add(re.sub(r"([A-Za-z]+)(\d+)",
-                         r"\1 \2", lic.replace(" ", "")))
+            # variants.add(re.sub(r"([A-Za-z]+)(\d+)",r"\1 \2", lic.replace(" ", "")))
             variants.add(lic.replace("-", ""))
 
             return list(variants)
@@ -61,7 +55,6 @@ class Med_info:
 
     def enter_info(self, npi_df: pd.DataFrame,  chunk_id: int):
         try:
-            # print(chunk_id)
             db_path = path_obj.combined_chunks_file.replace(".xlsx", ".db")
             options = Options()
             # images disable
@@ -126,27 +119,21 @@ class Med_info:
                     elif state in selected_state and not state_any_taxonomy:
                         state_any_taxonomy = taxo
 
-                selected_taxonomy = state_primary_taxonomy or state_any_taxonomy
-
+                selected_taxonomy = state_primary_taxonomy or state_any_taxonomy             
                 if selected_taxonomy:
                     license_number = (selected_taxonomy.get(
                         "license") or "").strip()
-                    taxonomy_state = (selected_taxonomy.get(
-                        "state") or "").strip().upper()
+                    taxonomy_state = (selected_taxonomy.get("state") or "").strip().upper()
 
                     if re.fullmatch(r"\d+", license_number) and taxonomy_state == "FL":
                         license_variants = [
                             f"ME{license_number}", f"OS{license_number}"]
 
-                    elif taxonomy_state == "AZ":
-                        match = re.fullmatch(
-                            r"(az)?(\d+)", license_number, re.IGNORECASE)
-                        if match:
-                            license_variants = [match.group(2)]
+                    elif taxonomy_state == "MN":
+                        license_variants = license_number
                     else:
                         license_variants = self.normalize_license(license_number)
                 else:
-                    print(f"[{os.getpid()}] No results found for chunk {chunk_id}")
                     license_number = ""
                     taxonomy_state = ""
                     license_variants = ""
@@ -159,8 +146,6 @@ class Med_info:
                     "last_name": last_name,
                     "state_code": taxonomy_state
                 }
-
-                # print(f"[{os.getpid()}] Searching NPI: {npi_number}... with license variants {license_variants}")
                 print(f"Searching NPI: {npi_number}... with license variants {license_variants}")
                 try:
                     if taxonomy_state == "MN":
@@ -168,12 +153,19 @@ class Med_info:
                     elif taxonomy_state == "FL":
                         state_df_result = fl_obj.enter_details(driver, wait, **all_info)
                     else:  
-                        state_df_result = surgery_obj.enter_details(driver, wait, **all_info)
+                        desc = (selected_taxonomy.get("desc") or "")
+                        if "surgery" in desc.lower():
+                            state_df_result = surgery_obj.enter_details(driver, wait, **all_info)
+                        else:
+                            continue  
+
 
                     print(state_df_result)
                     if state_df_result is None or not isinstance(state_df_result, pd.DataFrame) or state_df_result.empty:
                         continue
                     save_db_obj.realtime_save_in_db(state_df_result)
+
+
                 except Exception as err:
                     print("Check err log")
                     err_obj = ERRORIO()
