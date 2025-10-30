@@ -50,13 +50,6 @@ class Surgery:
             except:
                 pass
 
-            # first_result = wait.until(EC.element_to_be_clickable((
-            #     By.CSS_SELECTOR,
-            #     "div.listing__results.js-results-container h2"
-            # )))
-            # time.sleep(5)
-            # first_result.click()
-
             try:
                 first_result = wait.until(
                     EC.element_to_be_clickable((
@@ -72,17 +65,15 @@ class Surgery:
                 return None  
 
 
-
-            email_link = WebDriverWait(driver, 10).until(
-                EC.presence_of_element_located((By.CSS_SELECTOR,
-                    "div.profile-info-card__contact-row a[href^='mailto:']"
-                ))
-            )
-
-            email_href = email_link.get_attribute("href")  
-            email_address = email_href.replace("mailto:", "")
-            # print("Email address found:", email_address)
-
+            try:
+                email_link = WebDriverWait(driver, 10).until(
+                    EC.presence_of_element_located((By.CSS_SELECTOR,
+                        "div.profile-info-card__contact-row a[href^='mailto:']"
+                    ))
+                )
+                email_address = email_link.get_attribute("href").replace("mailto:", "")
+            except TimeoutException:
+                email_address = None
 
             data = {
                 "National Provider Identifier": [npi_number],
@@ -90,12 +81,10 @@ class Surgery:
                 "Email": [email_address],
             }
 
+            if not email_address or email_address.strip() in ["", "-", "N/A", "None", "NA"]:
+                return None
+            
             result_df = pd.DataFrame(data)
-            print("result_df")
-            print(npi_number)
-            print(fullName)
-            print(email_address)
-
             return result_df
 
         except Exception as err:

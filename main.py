@@ -1,3 +1,9 @@
+import warnings
+
+warnings.simplefilter(action='ignore', category=FutureWarning)
+warnings.simplefilter(action='ignore', category=UserWarning)
+
+
 if __name__ == "__main__":
     import multiprocessing
     multiprocessing.freeze_support() 
