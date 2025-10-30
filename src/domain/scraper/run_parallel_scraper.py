@@ -1,3 +1,8 @@
+# import warnings
+
+# warnings.simplefilter(action='ignore', category=FutureWarning)
+# warnings.simplefilter(action='ignore', category=UserWarning) 
+
 import os,sys
 sys.path.append(os.getcwd())
 import pandas as pd
@@ -7,7 +12,7 @@ from src.domain.search_board.main_search.state_select import Med_info
 from src.domain.path.project_paths import path_obj
 from src.domain.file_io.io_file import ERRORIO
 from src.domain.helper.npi_processed_check import NPIMATCH
-import glob
+import glob, warnings
 import traceback
 
 class SCRAPPER:
@@ -19,10 +24,11 @@ class SCRAPPER:
             self.df_data = pd.read_excel(path_obj.all_states_surgery_npi_result)
 
             self.df = self.df_data[self.df_data["number"].astype(str).isin(self.npi_to_process)]
-            print(self.df)
+            # print(self.df)
 
             if self.df.empty:
                 print("No new NPIs to process — all are already present.")
+                self.chunks = []
             else:
                 print(f"{len(self.df)} new NPIs will be sent to website for scrap")
                 self.chunks = np.array_split(self.df, 2)
@@ -45,11 +51,14 @@ class SCRAPPER:
             err_obj.write_file(err)
 
     def create_instances(self):
+        if not self.chunks:
+            print("No chunks to process, exiting.")
+            return
         try:
             with ProcessPoolExecutor(max_workers=2) as executor:
                 futures = []
                 for i, chunk_df in enumerate(self.chunks):
-                    print(f"Chunk {i} shape: {chunk_df.shape}")
+                    # print(f"Chunk {i} shape: {chunk_df.shape}")
                     futures.append(executor.submit(self.process_chunk, chunk_df, i))
 
                 for future in futures:

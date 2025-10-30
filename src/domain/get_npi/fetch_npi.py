@@ -11,7 +11,7 @@ class NPI_API:
     def __init__(self):
         npi_checker = NPIMATCH(check_type='client')
         self.df = pd.read_excel(path_obj.all_states_surgery_npi_test)
-        self.npi_list = self.df["National Provider Identifier"].dropna().astype(str).tolist()
+        self.npi_list = self.df["National Provider Identifier"].dropna().astype(str).unique().tolist()
         self.npi_to_process  = npi_checker.npi_present_already()
         
         before_count = len(self.npi_list)
@@ -83,6 +83,3 @@ class NPI_API:
             print(f"Records saved to Excel ({len(df_combined)} total).")
         else:
             print("No results found")
-
-# test_obj = NPI_API()
-# test_obj.api_fetch()
