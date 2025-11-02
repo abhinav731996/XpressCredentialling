@@ -7,7 +7,7 @@ import os,sys
 sys.path.append(os.getcwd())
 import pandas as pd
 import numpy as np
-from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures import ProcessPoolExecutor, as_completed, ThreadPoolExecutor
 from src.domain.search_board.main_search.state_select import Med_info
 from src.domain.path.project_paths import path_obj
 from src.domain.file_io.io_file import ERRORIO
@@ -58,12 +58,15 @@ class SCRAPPER:
             with ProcessPoolExecutor(max_workers=2) as executor:
                 futures = []
                 for i, chunk_df in enumerate(self.chunks):
+                    future = executor.submit(self.process_chunk, chunk_df, i)
+                    futures.append(future)
                     # print(f"Chunk {i} shape: {chunk_df.shape}")
-                    futures.append(executor.submit(self.process_chunk, chunk_df, i))
+                    # futures.append(executor.submit(self.process_chunk, chunk_df, i))
 
-                for future in futures:
+                for future in as_completed(futures):
                     try:
-                        result = future.result() 
+                        # result = future.result()
+                        future.result() 
                     except Exception as err:
                         print(f"[ERROR] Future failed: {err}")
                         err_obj = ERRORIO()
