@@ -88,10 +88,10 @@ class Med_info:
                 first_name = record.get("basic.first_name", "")
                 last_name = record.get("basic.last_name", "")
 
-                row_taxonomies = record.get("taxonomies", [])
-                if isinstance(row_taxonomies, str):
+                row_taxonomies = record.get("taxonomies", []) # [] or "[]"
+                if isinstance(row_taxonomies, str): 
                     try:
-                        taxonomies = ast.literal_eval(row_taxonomies)
+                        taxonomies = ast.literal_eval(row_taxonomies) # converts string into actual py obj(json loads can also be used but be sure json property is in double qoutes and not single)
                     except Exception:
                         pass
                         
