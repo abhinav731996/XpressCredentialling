@@ -11,7 +11,7 @@ class NPI_API:
     def __init__(self):
         npi_checker = NPIMATCH(check_type='client')
         self.df = pd.read_excel(path_obj.all_states_surgery_npi_test)
-        self.npi_list = self.df["National Provider Identifier"].dropna().astype(str).unique().tolist()
+        self.npi_list = self.df["National Provider Identifier"].dropna().astype(str).unique().tolist() # unique() in pandas is similar to set() in python
         self.npi_to_process  = npi_checker.npi_present_already()
         
         before_count = len(self.npi_list)
